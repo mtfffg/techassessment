@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@import "primeicons/primeicons.css";
+
+@layer base {
+  html { color-scheme: dark; }
+  body { margin: 0; background: #020617; color: #e2e8f0; font-family: "Segoe UI", sans-serif; }
+}

@@ -1,0 +1,55 @@
+<main class="mx-auto max-w-6xl px-6 py-6" aria-label="Books">
+  <div class="mb-4 flex justify-end">
+    <div class="flex w-full flex-col gap-2 sm:w-56">
+      <label for="genre-filter" class="text-sm text-slate-400">Genre</label>
+      <p-select inputId="genre-filter" [options]="genres" optionLabel="label" optionValue="value"
+        [ngModel]="search.genre" (ngModelChange)="selectGenre($event)" appendTo="body" class="w-full" />
+    </div>
+  </div>
+  @if (error()) {
+    <div class="mb-5 flex flex-wrap items-center gap-3" role="alert">
+      <p-message severity="error">{{ error() }}</p-message>
+      <p-button label="Try again" icon="pi pi-refresh" severity="secondary" (onClick)="loadBooks()" />
+    </div>
+  }
+  <section class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-sm" aria-label="Store books">
+    <p-table [value]="books()" [lazy]="true" [lazyLoadOnInit]="false"
+      (onLazyLoad)="changeSort($event)" [loading]="loading()"
+      [sortField]="search.sort" [sortOrder]="search.descending ? -1 : 1"
+      [tableStyle]="{ 'min-width': '45rem' }">
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="Title">Book <p-sortIcon field="Title" /></th>
+          <th pSortableColumn="Author">Author <p-sortIcon field="Author" /></th>
+          <th>Genre</th>
+          <th pSortableColumn="PublishedYear">Published <p-sortIcon field="PublishedYear" /></th>
+          <th pSortableColumn="Price">Price <p-sortIcon field="Price" /></th>
+          <th>Stock</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-book>
+        <tr>
+          <td><div class="font-medium text-slate-100">{{ book.title }}</div>
+            <div class="mt-1 text-xs text-slate-400">{{ book.isbn }}</div></td>
+          <td class="text-slate-300">{{ book.author }}</td>
+          <td><p-tag [value]="book.genre" severity="secondary" /></td>
+          <td class="text-slate-400">{{ book.publishedYear ?? 'Unknown' }}</td>
+          <td class="font-medium">{{ book.price | currency:'USD' }}</td>
+          <td class="text-slate-400">{{ book.stock }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr><td colspan="6"><div class="px-6 py-16 text-center">
+          <i class="pi pi-book mb-3 text-3xl text-slate-500" aria-hidden="true"></i>
+          <p class="text-slate-400">{{ error() ? 'Books could not be loaded.' : 'No books found.' }}</p>
+        </div></td></tr>
+      </ng-template>
+    </p-table>
+  </section>
+  <nav class="mt-4" aria-label="Book pagination">
+    <p-paginator [rows]="search.pageSize" [rowsPerPageOptions]="[5, 10, 20]"
+      [first]="(search.page - 1) * search.pageSize" [totalRecords]="totalCount()"
+      (onPageChange)="changePage($event)" [showCurrentPageReport]="true"
+      currentPageReportTemplate="{first}-{last} of {totalRecords}" dropdownAppendTo="body" />
+  </nav>
+</main>

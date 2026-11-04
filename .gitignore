@@ -1,0 +1,17 @@
+.local/
+**/bin/
+**/obj/
+**/node_modules/
+**/.angular/
+**/dist/
+**/TestResults/
+**/coverage/
+**/App_Data/
+*.db
+*.db-shm
+*.db-wal
+*.user
+.vs/
+.env
+.env.*
+!.env.example
