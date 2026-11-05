@@ -22,4 +22,16 @@ public class RequestService(BookService books, CatalogService catalog)
         //search open library
         return catalog.SearchBooks(search);
     }
+
+    public Task<BookVM?> AddBook(AddBookModel book)
+    {
+        //save book
+        return books.AddBook(book);
+    }
+
+    public Task<bool> DeleteBook(Guid id)
+    {
+        //delete book
+        return books.DeleteBook(id);
+    }
 }

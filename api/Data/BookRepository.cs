@@ -2,6 +2,7 @@ using Models;
 using Enums;
 using Data.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 
 namespace Data;
 
@@ -94,5 +95,65 @@ public class BookRepository(BookStoreDbContext db) : IBookRepository
                 Count = group.Count()
             })
             .ToListAsync();
+    }
+
+    public async Task<BookVM?> Add(AddBookModel request)
+    {
+        //check if book already exists
+        if (await db.Books.AnyAsync(book => book.Isbn == request.Isbn || book.OpenLibraryKey == request.OpenLibraryKey))
+        {
+            return null;
+        }
+
+        //build the book
+        var book = new BookModel
+        {
+            Id = Guid.NewGuid(),
+            Title = request.Title,
+            Author = request.Author,
+            Isbn = request.Isbn,
+            PublishedYear = request.PublishedYear,
+            CoverUrl = request.CoverUrl,
+            OpenLibraryKey = request.OpenLibraryKey,
+            Genre = request.Genre!.Value,
+            Price = request.Price!.Value,
+            Stock = request.Stock
+        };
+
+        //save book to db
+        db.Books.Add(book);
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is SqliteException sqlite &&
+            sqlite.SqliteExtendedErrorCode == 2067)
+        {
+            //if another request saved the same book
+            db.Entry(book).State = EntityState.Detached;
+            return null;
+        }
+
+        //return saved book
+        return new BookVM
+        {
+            Id = book.Id,
+            Title = book.Title,
+            Author = book.Author,
+            Isbn = book.Isbn,
+            PublishedYear = book.PublishedYear,
+            CoverUrl = book.CoverUrl,
+            OpenLibraryKey = book.OpenLibraryKey,
+            Genre = book.Genre,
+            Price = book.Price,
+            Stock = book.Stock
+        };
+    }
+
+    public async Task<bool> Delete(Guid id)
+    {
+        //remove matching book from db
+        var deleted = await db.Books.Where(book => book.Id == id).ExecuteDeleteAsync();
+        return deleted > 0;
     }
 }

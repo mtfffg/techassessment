@@ -4,7 +4,7 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./home/home.component').then(module => module.HomeComponent),
-    title: 'Bookstore Technical Assessment',
+    title: 'Bookstore',
   },
   { path: '**', redirectTo: '' },
 ];

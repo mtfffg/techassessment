@@ -2,6 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { IBookPage } from '../models/IBookPage';
 import { ISearchBook } from '../models/ISearchBook';
+import { IAddBook } from '../models/IAddBook';
+import { IBook } from '../models/IBook';
 
 @Injectable({ providedIn: 'root' })
 export class BooksService {
@@ -18,5 +20,15 @@ export class BooksService {
     if (search.genre) params = params.set('genre', search.genre);
 
     return this.http.get<IBookPage>('/api/books', { params });
+  }
+
+  //service call to save book
+  addBook(book: IAddBook) {
+    return this.http.post<IBook>('/api/books', book);
+  }
+
+  //service call to delete book
+  deleteBook(id: string) {
+    return this.http.delete<void>(`/api/books/${id}`);
   }
 }

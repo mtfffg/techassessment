@@ -8,19 +8,26 @@ import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
+import { DialogModule } from 'primeng/dialog';
+import { HttpErrorResponse } from '@angular/common/http';
 import { BooksService } from '../services/books.service';
 import { IBook } from '../models/IBook';
 import { ISearchBook } from '../models/ISearchBook';
 import { EBookSort } from '../enums/EBookSort';
 import { EGenre } from '../enums/EGenre';
+import { AddBookComponent } from '../add-book/add-book.component';
 
 @Component({
   selector: 'app-home',
-  imports: [CurrencyPipe, FormsModule, ButtonModule, MessageModule, TableModule, TagModule, SelectModule, PaginatorModule],
+  imports: [CurrencyPipe, FormsModule, ButtonModule, MessageModule, TableModule, TagModule, SelectModule, PaginatorModule, DialogModule, AddBookComponent],
   templateUrl: './home.component.html',
   host: { class: 'block flex-1' },
 })
 export class HomeComponent implements OnInit, OnDestroy {
+  addBookVisible = false;
+  bookToDelete: IBook | null = null;
+  deleting = signal(false);
+  deleteError = signal('');
   books = signal<IBook[]>([]);
   totalCount = signal(0);
   loading = signal(false);
@@ -31,6 +38,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     ...Object.values(EGenre).map(value => ({ label: value === EGenre.SciFi ? 'Science fiction' : value === EGenre.NonFiction ? 'Non-fiction' : value, value })),
   ];
   private request?: Subscription;
+  private deleteRequest?: Subscription;
 
   constructor(private booksService: BooksService) {}
 
@@ -91,8 +99,61 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.loadBooks();
   }
 
+  hideCover(event: Event) {
+    //hide cover if it fails to load
+    (event.target as HTMLImageElement).hidden = true;
+  }
+
+  onBookSaved(book: IBook) {
+    //clear a different genre filter and refresh table
+    if (this.search.genre !== book.genre) this.search.genre = null;
+    this.search.page = 1;
+    this.loadBooks();
+  }
+
+  confirmDelete(book: IBook) {
+    //ask before deleting book
+    this.bookToDelete = book;
+    this.deleteError.set('');
+  }
+
+  cancelDelete() {
+    if (this.deleting()) return;
+    this.bookToDelete = null;
+    this.deleteError.set('');
+  }
+
+  deleteBook() {
+    //delete selected book
+    if (!this.bookToDelete || this.deleting()) return;
+    this.deleting.set(true);
+    this.deleteError.set('');
+    this.deleteRequest = this.booksService.deleteBook(this.bookToDelete.id).subscribe({
+      next: () => {
+        this.onBookDeleted();
+      },
+      error: (error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          this.onBookDeleted();
+          return;
+        }
+        this.deleting.set(false);
+        this.deleteError.set('Could not delete book. Please try again.');
+      },
+    });
+  }
+
+  onBookDeleted() {
+    //close dialog and refresh table
+    this.deleting.set(false);
+    this.bookToDelete = null;
+    if (this.books().length === 1 && this.search.page > 1) this.search.page--;
+    this.loadBooks();
+  }
+
   ngOnDestroy() {
     //stop request when leaving page
     this.request?.unsubscribe();
+    this.deleteRequest?.unsubscribe();
   }
 }

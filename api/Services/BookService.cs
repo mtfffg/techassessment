@@ -1,5 +1,6 @@
 using Models;
 using Data;
+using System.Text.RegularExpressions;
 
 namespace Services;
 
@@ -27,5 +28,56 @@ public class BookService(IBookRepository books)
     {
         //get genre counts
         return books.CountByGenre();
+    }
+
+    public Task<BookVM?> AddBook(AddBookModel request)
+    {
+        //check book details
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Trim().Length > 500)
+        {
+            throw new ArgumentException("A book title between 1 and 500 characters is required.");
+        }
+
+        request.Title = request.Title.Trim();
+        request.Author = (request.Author ?? string.Empty).Trim();
+        request.Isbn = (request.Isbn ?? string.Empty).Replace("-", "").Replace(" ", "").ToUpperInvariant();
+        request.OpenLibraryKey = (request.OpenLibraryKey ?? string.Empty).Trim();
+
+        if (request.Author.Length > 500)
+        {
+            throw new ArgumentException("The author name must be 500 characters or less.");
+        }
+        if (!Regex.IsMatch(request.Isbn, @"^([0-9]{13}|[0-9]{9}[0-9X])$"))
+        {
+            throw new ArgumentException("Choose a catalog result with a valid ISBN.");
+        }
+        if (!Regex.IsMatch(request.OpenLibraryKey, @"^/(works|books)/OL[0-9]+[WM]$"))
+        {
+            throw new ArgumentException("Choose a book from Open Library.");
+        }
+
+        //check genre and price
+        if (!request.Genre.HasValue || !Enum.IsDefined(request.Genre.Value))
+        {
+            throw new ArgumentException("Select a genre.");
+        }
+        if (!request.Price.HasValue || request.Price < 0 || request.Price > 99999999.99m ||
+            decimal.Round(request.Price.Value, 2) != request.Price.Value)
+        {
+            throw new ArgumentException("Enter a price between 0 and 99999999.99 with up to two decimal places.");
+        }
+        if (request.Stock < 0)
+        {
+            throw new ArgumentException("Stock cannot be negative.");
+        }
+
+        //call repo
+        return books.Add(request);
+    }
+
+    public Task<bool> DeleteBook(Guid id)
+    {
+        //delete book from db
+        return books.Delete(id);
     }
 }

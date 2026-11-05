@@ -2,9 +2,11 @@ using Models;
 using Enums;
 using Services;
 using Data;
+using Data.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using System.Globalization;
 
 namespace Tests;
 
@@ -19,6 +21,14 @@ public class BookQueryTests : IAsyncLifetime
         db = new BookStoreDbContext(new DbContextOptionsBuilder<BookStoreDbContext>()
             .UseSqlite(connection).Options);
         await DatabaseInitializer.Initialize(db);
+
+        //add books for these tests only
+        db.Books.AddRange(
+            TestBook("Pride and Prejudice", "Jane Austen", "9780141439518", 1813, EGenre.Fiction, 12.99m),
+            TestBook("The Hobbit", "J. R. R. Tolkien", "9780547928227", 1937, EGenre.Fantasy, 15.50m),
+            TestBook("Frankenstein", "Mary Shelley", "9780141439471", 1818, EGenre.SciFi, 10.00m),
+            TestBook("The Adventures of Sherlock Holmes", "Arthur Conan Doyle", "9780140437713", 1892, EGenre.Mystery, 11.25m));
+        await db.SaveChangesAsync();
     }
 
     [Fact]
@@ -82,10 +92,118 @@ public class BookQueryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task RepeatedStartupDoesNotDuplicateSeeds()
+    public async Task StartupDoesNotAddDefaultBooks()
     {
+        await db.Books.ExecuteDeleteAsync();
         await DatabaseInitializer.Initialize(db);
-        Assert.Equal(4, await db.Books.CountAsync());
+        Assert.Equal(0, await db.Books.CountAsync());
+    }
+
+    [Fact]
+    public async Task SavesSelectedBookDetails()
+    {
+        var service = new BookService(new BookRepository(db));
+        var saved = await service.AddBook(NewBook());
+
+        Assert.NotNull(saved);
+        db.ChangeTracker.Clear();
+        var book = await db.Books.SingleAsync(book => book.Id == saved.Id);
+        Assert.Equal("The Witcher", book.Title);
+        Assert.Equal(12.99m, book.Price);
+        Assert.Equal(EGenre.Fantasy, book.Genre);
+        Assert.Equal("https://covers.openlibrary.org/b/id/123-M.jpg", book.CoverUrl);
+    }
+
+    [Fact]
+    public async Task RejectsDuplicateIsbn()
+    {
+        var service = new BookService(new BookRepository(db));
+        await service.AddBook(NewBook());
+        var duplicate = NewBook();
+        duplicate.OpenLibraryKey = "/works/OL456W";
+
+        Assert.Null(await service.AddBook(duplicate));
+        Assert.Equal(5, await db.Books.CountAsync());
+    }
+
+    [Fact]
+    public async Task RejectsDuplicateOpenLibraryKey()
+    {
+        var service = new BookService(new BookRepository(db));
+        await service.AddBook(NewBook());
+        var duplicate = NewBook();
+        duplicate.Isbn = "9780316029193";
+
+        Assert.Null(await service.AddBook(duplicate));
+        Assert.Equal(5, await db.Books.CountAsync());
+    }
+
+    [Fact]
+    public async Task RequiresGenreAndPrice()
+    {
+        var service = new BookService(new BookRepository(db));
+        var book = NewBook();
+        book.Genre = null;
+        await Assert.ThrowsAsync<ArgumentException>(() => service.AddBook(book));
+
+        book.Genre = EGenre.Fantasy;
+        book.Price = null;
+        await Assert.ThrowsAsync<ArgumentException>(() => service.AddBook(book));
+    }
+
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("1.001")]
+    [InlineData("100000000")]
+    public async Task RejectsInvalidPrices(string price)
+    {
+        var service = new BookService(new BookRepository(db));
+        var book = NewBook();
+        book.Price = decimal.Parse(price, CultureInfo.InvariantCulture);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.AddBook(book));
+    }
+
+    [Fact]
+    public async Task DeletesSavedBook()
+    {
+        var service = new BookService(new BookRepository(db));
+        var saved = await service.AddBook(NewBook());
+        Assert.NotNull(saved);
+
+        Assert.True(await service.DeleteBook(saved.Id));
+        Assert.False(await db.Books.AnyAsync(book => book.Id == saved.Id));
+        Assert.False(await service.DeleteBook(saved.Id));
+    }
+
+    private static AddBookModel NewBook()
+    {
+        return new AddBookModel
+        {
+            Title = "The Witcher",
+            Author = "Andrzej Sapkowski",
+            Isbn = "9780316029186",
+            PublishedYear = 1993,
+            CoverUrl = "https://covers.openlibrary.org/b/id/123-M.jpg",
+            OpenLibraryKey = "/works/OL123W",
+            Genre = EGenre.Fantasy,
+            Price = 12.99m
+        };
+    }
+
+    private static BookModel TestBook(string title, string author, string isbn, int year, EGenre genre, decimal price)
+    {
+        return new BookModel
+        {
+            Id = Guid.NewGuid(),
+            Title = title,
+            Author = author,
+            Isbn = isbn,
+            PublishedYear = year,
+            OpenLibraryKey = "/works/" + isbn,
+            Genre = genre,
+            Price = price
+        };
     }
 
     public async Task DisposeAsync()

@@ -7,4 +7,8 @@ public interface IBookRepository
     Task<BookPageVM> List(SearchBookModel search);
 
     Task<IReadOnlyList<GenreCountVM>> CountByGenre();
+
+    Task<BookVM?> Add(AddBookModel book);
+
+    Task<bool> Delete(Guid id);
 }

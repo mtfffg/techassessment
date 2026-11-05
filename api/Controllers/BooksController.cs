@@ -34,4 +34,30 @@ public class BooksController(RequestService requests) : ControllerBase
         //get genre counts
         return requests.GetGenreCounts();
     }
+
+    [HttpPost]
+    public async Task<IActionResult> AddBook([FromBody] AddBookModel request)
+    {
+        //save selected book
+        var book = await requests.AddBook(request);
+        if (book == null)
+        {
+            return Conflict(new ProblemDetails { Status = 409, Title = "This book is already in your store." });
+        }
+
+        return Created($"/api/books/{book.Id}", book);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteBook(Guid id)
+    {
+        //delete selected book
+        var deleted = await requests.DeleteBook(id);
+        if (!deleted)
+        {
+            return NotFound(new ProblemDetails { Status = 404, Title = "Book not found." });
+        }
+
+        return NoContent();
+    }
 }
