@@ -24,6 +24,14 @@ builder.Services.AddProblemDetails();
 builder.Services.AddScoped<ApiExceptionHandler>();
 builder.Services.AddScoped<RequestService>();
 builder.Services.AddScoped<BookService>();
+builder.Services.AddHttpClient<CatalogService>(http =>
+{
+    http.BaseAddress = new Uri("https://openlibrary.org/");
+    http.Timeout = TimeSpan.FromSeconds(10);
+    //identify our app to open library
+    var userAgent = "BookstoreTechnicalAssessment/1.0 (+https://github.com/mtfffg/techassessment)";
+    http.DefaultRequestHeaders.Add("User-Agent", userAgent);
+});
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 
 var dataPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data");

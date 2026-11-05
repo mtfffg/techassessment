@@ -35,7 +35,7 @@ api/
   Models/           Internal *Model.cs classes and *VM.cs view models
   Enums/            EGenre and EBookSort
   Configuration/    Settings and HTTP error handling
-  Services/         BookService and RequestService
+  Services/         BookService, CatalogService and RequestService
   Data/             EF Core context, repository, its interface and seeding
     Models/         Database entities named *Model.cs
   Properties/       .NET launch profile used by VS Code and dotnet run
@@ -69,11 +69,16 @@ These are the requested structural choices. They depart from the assessment's ex
 - Structured JSON logs and request IDs in log scopes and the `X-Request-Id` header.
 - Backend query/service tests and small Angular service/component unit tests.
 
-Still to implement: Open Library search, selecting and adding a result, single-book retrieval, editing, deletion, write validation and duplicate-conflict handling. This is not yet a complete assessment submission. Search/add and edit can be separate dialog components on Home; additional pages can be added when needed.
+Open Library search is available through the API only. It returns up to 10 candidates and does not save them. Missing author/ISBN values are empty strings; missing years and covers are null. Requests time out after 10 seconds. Upstream failures return 503, timeouts return 504, and invalid upstream JSON returns 502.
+
+`CatalogService` reads the Open Library response with Newtonsoft.Json. The User-Agent header identifies this application to Open Library; it is plain header text, not JSON.
+
+Still to implement: the search UI, selecting and adding a result, single-book retrieval, editing, deletion, write validation and duplicate-conflict handling. This is not yet a complete assessment submission. Search/add and edit can be separate dialog components on Home; additional pages can be added when needed.
 
 ## API and data
 
 - `GET /health`
+- `GET /api/catalog/search?q=the%20hobbit`
 - `GET /api/books?genre=Fantasy&page=1&pageSize=10&sort=Price&descending=false`
 - `GET /api/books/genre-counts`
 
