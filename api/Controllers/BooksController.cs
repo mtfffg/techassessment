@@ -1,13 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
-using Models;
-using Enums;
-using Services;
+using Application.Models;
+using Application.Features.Books.AddBook;
+using Application.Features.Books.GetBooks;
+using Application.Features.Books.UpdateBook;
+using Domain.Enums;
+using Application.Interfaces;
+using Application.Features.Books.GetBook;
+using Application.Features.Books.DeleteBook;
 
 namespace Controllers;
 
 [ApiController]
 [Route("api/books")]
-public class BooksController(RequestService requests) : ControllerBase
+public class BooksController(IRequestService requests) : ControllerBase
 {
     [HttpGet]
     public Task<BookPageVM> GetBooks(
@@ -39,7 +44,7 @@ public class BooksController(RequestService requests) : ControllerBase
     public async Task<IActionResult> AddBook([FromBody] AddBookModel request)
     {
         //save selected book
-        var book = await requests.AddBook(request);
+        var book = await requests.Send(request);
         if (book == null)
         {
             return Conflict(new ProblemDetails { Status = 409, Title = "This book is already in your store." });
@@ -52,7 +57,7 @@ public class BooksController(RequestService requests) : ControllerBase
     public async Task<IActionResult> DeleteBook(Guid id)
     {
         //delete selected book
-        var deleted = await requests.DeleteBook(id);
+        var deleted = await requests.Send(new DeleteBookModel { Id = id });
         if (!deleted)
         {
             return NotFound(new ProblemDetails { Status = 404, Title = "Book not found." });
@@ -65,7 +70,7 @@ public class BooksController(RequestService requests) : ControllerBase
     public async Task<IActionResult> GetBook(Guid id)
     {
         //get saved book
-        var book = await requests.GetBook(id);
+        var book = await requests.Send(new GetBookModel { Id = id });
         if (book == null)
         {
             return NotFound(new ProblemDetails { Status = 404, Title = "Book not found." });
@@ -78,7 +83,8 @@ public class BooksController(RequestService requests) : ControllerBase
     public async Task<IActionResult> UpdateBook(Guid id, [FromBody] UpdateBookModel request)
     {
         //update store details
-        var book = await requests.UpdateBook(id, request);
+        request.Id = id;
+        var book = await requests.Send(request);
         if (book == null)
         {
             return NotFound(new ProblemDetails { Status = 404, Title = "Book not found." });

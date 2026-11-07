@@ -1,9 +1,11 @@
 using System.Text.Json.Serialization;
 using Configuration;
-using Data;
-using Models;
-using Services;
+using Infrastructure.Data;
+using Application.Interfaces;
+using Infrastructure.Catalog;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration
@@ -11,10 +13,10 @@ builder.Configuration
     .AddJsonFile($"Configuration/appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 if (args.Length > 0) builder.Configuration.AddCommandLine(args);
-builder.Logging.ClearProviders();
-builder.Logging.AddJsonConsole(options =>
+//configure structured logging
+builder.Services.AddSerilog((services, logger) =>
 {
-    options.IncludeScopes = true;
+    logger.ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext();
 });
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -22,9 +24,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 builder.Services.AddProblemDetails();
 builder.Services.AddScoped<ApiExceptionHandler>();
-builder.Services.AddScoped<RequestService>();
-builder.Services.AddScoped<BookService>();
-builder.Services.AddHttpClient<CatalogService>(http =>
+builder.Services.AddBookHandlers();
+builder.Services.AddHttpClient<IBookCatalog, CatalogService>(http =>
 {
     http.BaseAddress = new Uri("https://openlibrary.org/");
     http.Timeout = TimeSpan.FromSeconds(10);
@@ -43,6 +44,16 @@ builder.Services.AddDbContext<BookStoreDbContext>(options =>
 });
 
 var app = builder.Build();
+//include the request id in all logs for this request
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Request-Id"] = context.TraceIdentifier;
+    using (LogContext.PushProperty("RequestId", context.TraceIdentifier))
+    {
+        await next(context);
+    }
+});
+app.UseSerilogRequestLogging();
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(context =>
@@ -51,12 +62,6 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 app.UseStatusCodePages();
-app.Use(async (context, next) =>
-{
-    context.Response.Headers["X-Request-Id"] = context.TraceIdentifier;
-    using var scope = app.Logger.BeginScope(new Dictionary<string, object> { ["RequestId"] = context.TraceIdentifier });
-    await next(context);
-});
 
 app.MapGet("/health", () =>
 {

@@ -1,12 +1,13 @@
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc;
-using Services;
+using Application.Interfaces;
+using Application.Features.Catalog.SearchCatalog;
 
 namespace Controllers;
 
 [ApiController]
 [Route("api/catalog")]
-public class CatalogController(RequestService requests, ILogger<CatalogController> logger) : ControllerBase
+public class CatalogController(IRequestService requests, ILogger<CatalogController> logger) : ControllerBase
 {
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string q = "")
@@ -14,7 +15,7 @@ public class CatalogController(RequestService requests, ILogger<CatalogControlle
         try
         {
             //search open library
-            var books = await requests.SearchCatalog(q);
+            var books = await requests.Send(new SearchCatalogModel { Search = q });
             return Ok(books);
         }
         catch (HttpRequestException exception)
