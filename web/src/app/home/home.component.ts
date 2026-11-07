@@ -16,15 +16,17 @@ import { ISearchBook } from '../models/ISearchBook';
 import { EBookSort } from '../enums/EBookSort';
 import { EGenre } from '../enums/EGenre';
 import { AddBookComponent } from '../add-book/add-book.component';
+import { EditBookComponent } from '../edit-book/edit-book.component';
 
 @Component({
   selector: 'app-home',
-  imports: [CurrencyPipe, FormsModule, ButtonModule, MessageModule, TableModule, TagModule, SelectModule, PaginatorModule, DialogModule, AddBookComponent],
+  imports: [CurrencyPipe, FormsModule, ButtonModule, MessageModule, TableModule, TagModule, SelectModule, PaginatorModule, DialogModule, AddBookComponent, EditBookComponent],
   templateUrl: './home.component.html',
   host: { class: 'block flex-1' },
 })
 export class HomeComponent implements OnInit, OnDestroy {
   addBookVisible = false;
+  editBookId: string | null = null;
   bookToDelete: IBook | null = null;
   deleting = signal(false);
   deleteError = signal('');
@@ -37,6 +39,17 @@ export class HomeComponent implements OnInit, OnDestroy {
     { label: 'All genres', value: null },
     ...Object.values(EGenre).map(value => ({ label: value === EGenre.SciFi ? 'Science fiction' : value === EGenre.NonFiction ? 'Non-fiction' : value, value })),
   ];
+  //badge colors for each genre
+  genreColors: Record<string, { background: string; color: string }> = {
+    Fiction: { background: '#1e3a5f', color: '#bfdbfe' },
+    SciFi: { background: '#164e63', color: '#a5f3fc' },
+    Fantasy: { background: '#4c1d95', color: '#ddd6fe' },
+    Mystery: { background: '#701a75', color: '#f5d0fe' },
+    Biography: { background: '#7c2d12', color: '#fed7aa' },
+    NonFiction: { background: '#365314', color: '#d9f99d' },
+    Children: { background: '#831843', color: '#fbcfe8' },
+    History: { background: '#713f12', color: '#fef08a' },
+  };
   private request?: Subscription;
   private deleteRequest?: Subscription;
 
@@ -107,6 +120,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   onBookSaved(book: IBook) {
     //clear a different genre filter and refresh table
     if (this.search.genre !== book.genre) this.search.genre = null;
+    this.search.page = 1;
+    this.loadBooks();
+  }
+
+  onBookUpdated() {
+    //refresh table after editing
     this.search.page = 1;
     this.loadBooks();
   }

@@ -60,4 +60,30 @@ public class BooksController(RequestService requests) : ControllerBase
 
         return NoContent();
     }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetBook(Guid id)
+    {
+        //get saved book
+        var book = await requests.GetBook(id);
+        if (book == null)
+        {
+            return NotFound(new ProblemDetails { Status = 404, Title = "Book not found." });
+        }
+
+        return Ok(book);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> UpdateBook(Guid id, [FromBody] UpdateBookModel request)
+    {
+        //update store details
+        var book = await requests.UpdateBook(id, request);
+        if (book == null)
+        {
+            return NotFound(new ProblemDetails { Status = 404, Title = "Book not found." });
+        }
+
+        return Ok(book);
+    }
 }

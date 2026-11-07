@@ -34,4 +34,16 @@ public class RequestService(BookService books, CatalogService catalog)
         //delete book
         return books.DeleteBook(id);
     }
+
+    public Task<BookVM?> GetBook(Guid id)
+    {
+        //get saved book
+        return books.GetBook(id);
+    }
+
+    public Task<BookVM?> UpdateBook(Guid id, UpdateBookModel book)
+    {
+        //update saved book
+        return books.UpdateBook(id, book);
+    }
 }

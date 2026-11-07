@@ -15,16 +15,22 @@
       </div>
       <p-button label="Change book" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="selectBook(null)" />
     </div>
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-3">
       <div class="flex flex-col gap-2">
         <label for="book-genre">Genre</label>
         <p-select inputId="book-genre" [options]="genres" [(ngModel)]="genre" placeholder="Select genre"
           [disabled]="saving()" appendTo="body" class="w-full" />
       </div>
-      <div class="flex flex-col gap-2">
+      <div class="flex min-w-0 flex-col gap-2">
         <label for="book-price">Price</label>
         <p-inputNumber inputId="book-price" [(ngModel)]="price" mode="currency" currency="USD" locale="en-US"
           [min]="0" [max]="99999999.99" [minFractionDigits]="2" [maxFractionDigits]="2" [disabled]="saving()"
+          class="w-full" inputStyleClass="w-full" />
+      </div>
+      <div class="flex min-w-0 flex-col gap-2">
+        <label for="book-stock">Stock</label>
+        <p-inputNumber inputId="book-stock" [(ngModel)]="stock" [min]="0" [max]="2147483647"
+          [maxFractionDigits]="0" [useGrouping]="false" [disabled]="saving()"
           class="w-full" inputStyleClass="w-full" />
       </div>
     </div>
@@ -84,7 +90,7 @@
     <p-button label="Cancel" severity="secondary" [outlined]="true" [disabled]="saving()" (onClick)="close()" />
     @if (selectedBook()) {
       <p-button label="Save book" icon="pi pi-check" [loading]="saving()"
-        [disabled]="!genre || price === null || saving()" (onClick)="saveBook()" />
+        [disabled]="!genre || price === null || stock === null || saving()" (onClick)="saveBook()" />
     }
   </ng-template>
 </p-dialog>

@@ -176,6 +176,91 @@ public class BookQueryTests : IAsyncLifetime
         Assert.False(await service.DeleteBook(saved.Id));
     }
 
+    [Fact]
+    public async Task GetsOneSavedBook()
+    {
+        var service = new BookService(new BookRepository(db));
+        var saved = await service.AddBook(NewBook());
+        Assert.NotNull(saved);
+
+        var book = await service.GetBook(saved.Id);
+
+        Assert.NotNull(book);
+        Assert.Equal(saved.Id, book.Id);
+        Assert.Equal("The Witcher", book.Title);
+        Assert.Equal(12.99m, book.Price);
+    }
+
+    [Fact]
+    public async Task ReturnsNullWhenBookDoesNotExist()
+    {
+        var service = new BookService(new BookRepository(db));
+        var id = Guid.NewGuid();
+
+        Assert.Null(await service.GetBook(id));
+        Assert.Null(await service.UpdateBook(id, new UpdateBookModel { Genre = EGenre.History, Price = 10m, Stock = 2 }));
+    }
+
+    [Fact]
+    public async Task UpdatesStoreDetailsAndKeepsCatalogDetails()
+    {
+        var service = new BookService(new BookRepository(db));
+        var saved = await service.AddBook(NewBook());
+        Assert.NotNull(saved);
+
+        await service.UpdateBook(saved.Id, new UpdateBookModel { Genre = EGenre.History, Price = 15.50m, Stock = 8 });
+        db.ChangeTracker.Clear();
+        var book = await service.GetBook(saved.Id);
+
+        Assert.NotNull(book);
+        Assert.Equal(EGenre.History, book.Genre);
+        Assert.Equal(15.50m, book.Price);
+        Assert.Equal(8, book.Stock);
+        Assert.Equal(saved.Title, book.Title);
+        Assert.Equal(saved.Author, book.Author);
+        Assert.Equal(saved.Isbn, book.Isbn);
+        Assert.Equal(saved.PublishedYear, book.PublishedYear);
+        Assert.Equal(saved.CoverUrl, book.CoverUrl);
+        Assert.Equal(saved.OpenLibraryKey, book.OpenLibraryKey);
+        Assert.Equal(5, await db.Books.CountAsync());
+    }
+
+    [Fact]
+    public async Task RejectsInvalidUpdateDetails()
+    {
+        var service = new BookService(new BookRepository(db));
+        var saved = await service.AddBook(NewBook());
+        Assert.NotNull(saved);
+        var update = new UpdateBookModel { Genre = EGenre.Fantasy, Price = -1m, Stock = 2 };
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateBook(saved.Id, update));
+
+        update.Price = 10m;
+        update.Stock = -1;
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateBook(saved.Id, update));
+
+        update.Stock = null;
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateBook(saved.Id, update));
+        var unchanged = await service.GetBook(saved.Id);
+        Assert.NotNull(unchanged);
+        Assert.Equal(12.99m, unchanged.Price);
+        Assert.Equal(0, unchanged.Stock);
+    }
+
+    [Fact]
+    public async Task AllowsZeroPriceAndStockWhenUpdating()
+    {
+        var service = new BookService(new BookRepository(db));
+        var saved = await service.AddBook(NewBook());
+        Assert.NotNull(saved);
+
+        var updated = await service.UpdateBook(saved.Id, new UpdateBookModel { Genre = EGenre.Fiction, Price = 0m, Stock = 0 });
+
+        Assert.NotNull(updated);
+        Assert.Equal(EGenre.Fiction, updated.Genre);
+        Assert.Equal(0m, updated.Price);
+        Assert.Equal(0, updated.Stock);
+    }
+
     private static AddBookModel NewBook()
     {
         return new AddBookModel

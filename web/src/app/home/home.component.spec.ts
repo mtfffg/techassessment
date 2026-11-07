@@ -79,4 +79,15 @@ describe('HomeComponent', () => {
     expect(home.search.page).toBe(1);
     expect(getBooks).toHaveBeenCalledOnce();
   });
+
+  it('refreshes the first page after editing while keeping the genre filter', () => {
+    home.search.genre = EGenre.Fantasy;
+    home.search.page = 2;
+
+    home.onBookUpdated();
+
+    expect(home.search.genre).toBe(EGenre.Fantasy);
+    expect(home.search.page).toBe(1);
+    expect(getBooks).toHaveBeenCalledOnce();
+  });
 });

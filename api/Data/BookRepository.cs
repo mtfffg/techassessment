@@ -135,6 +135,45 @@ public class BookRepository(BookStoreDbContext db) : IBookRepository
         }
 
         //return saved book
+        return ToViewModel(book);
+    }
+
+    public async Task<BookVM?> Get(Guid id)
+    {
+        //get book from db
+        var book = await db.Books.AsNoTracking().FirstOrDefaultAsync(book => book.Id == id);
+        if (book == null) return null;
+
+        return ToViewModel(book);
+    }
+
+    public async Task<BookVM?> Update(Guid id, UpdateBookModel request)
+    {
+        //find saved book
+        var book = await db.Books.FirstOrDefaultAsync(book => book.Id == id);
+        if (book == null) return null;
+
+        //update store details only
+        book.Genre = request.Genre!.Value;
+        book.Price = request.Price!.Value;
+        book.Stock = request.Stock!.Value;
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            //if book was deleted while editing
+            return null;
+        }
+
+        return ToViewModel(book);
+    }
+
+    private static BookVM ToViewModel(BookModel book)
+    {
+        //build book viewmodel
         return new BookVM
         {
             Id = book.Id,
@@ -144,6 +183,7 @@ public class BookRepository(BookStoreDbContext db) : IBookRepository
             PublishedYear = book.PublishedYear,
             CoverUrl = book.CoverUrl,
             OpenLibraryKey = book.OpenLibraryKey,
+            Description = book.Description,
             Genre = book.Genre,
             Price = book.Price,
             Stock = book.Stock

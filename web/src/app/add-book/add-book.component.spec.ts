@@ -46,10 +46,11 @@ describe('AddBookComponent', () => {
     dialog.selectedBook.set(book);
     dialog.genre = EGenre.Fantasy;
     dialog.price = 12.99;
+    dialog.stock = 5;
 
     dialog.saveBook();
 
-    expect(addBook).toHaveBeenCalledWith({ ...book, genre: EGenre.Fantasy, price: 12.99, stock: 0 });
+    expect(addBook).toHaveBeenCalledWith({ ...book, genre: EGenre.Fantasy, price: 12.99, stock: 5 });
     expect(result).toBe(savedBook);
     expect(dialog.visible).toBe(false);
   });
@@ -61,6 +62,18 @@ describe('AddBookComponent', () => {
 
     expect(addBook).not.toHaveBeenCalled();
     expect(dialog.error()).toBe('Select a genre and enter a valid price.');
+  });
+
+  it('rejects negative stock before saving', () => {
+    dialog.selectedBook.set(book);
+    dialog.genre = EGenre.Fantasy;
+    dialog.price = 12.99;
+    dialog.stock = -1;
+
+    dialog.saveBook();
+
+    expect(addBook).not.toHaveBeenCalled();
+    expect(dialog.error()).toBe('Enter a whole stock quantity of zero or more.');
   });
 
   it('keeps the dialog open when the book is already saved', () => {

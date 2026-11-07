@@ -45,12 +45,18 @@
           <td><div class="font-medium text-slate-100">{{ book.title }}</div>
             <div class="mt-1 text-xs text-slate-400">{{ book.isbn }}</div></td>
           <td class="text-slate-300">{{ book.author }}</td>
-          <td><p-tag [value]="book.genre" severity="secondary" /></td>
+          <td><p-tag [value]="book.genre" [style]="genreColors[book.genre]" /></td>
           <td class="text-slate-400">{{ book.publishedYear ?? 'Unknown' }}</td>
           <td class="font-medium">{{ book.price | currency:'USD' }}</td>
           <td class="text-slate-400">{{ book.stock }}</td>
-          <td><p-button label="Delete" icon="pi pi-trash" severity="danger" [text]="true"
-            size="small" (onClick)="confirmDelete(book)" /></td>
+          <td>
+            <div class="flex gap-2">
+              <p-button label="Edit" icon="pi pi-pencil" severity="info"
+                size="small" (onClick)="editBookId = book.id" />
+              <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true"
+                size="small" (onClick)="confirmDelete(book)" />
+            </div>
+          </td>
         </tr>
       </ng-template>
       <ng-template #emptymessage>
@@ -69,6 +75,7 @@
   </nav>
 </main>
 <app-add-book [(visible)]="addBookVisible" (bookSaved)="onBookSaved($event)" />
+<app-edit-book [(bookId)]="editBookId" (bookSaved)="onBookUpdated()" />
 <p-dialog header="Delete book" [visible]="bookToDelete !== null" (visibleChange)="cancelDelete()"
   [modal]="true" [draggable]="false" [resizable]="false" [closable]="!deleting()" [closeOnEscape]="!deleting()"
   [style]="{ width: '26rem', maxWidth: '95vw' }" appendTo="body">

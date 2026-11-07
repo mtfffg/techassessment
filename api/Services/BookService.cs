@@ -1,6 +1,7 @@
 using Models;
 using Data;
 using System.Text.RegularExpressions;
+using Enums;
 
 namespace Services;
 
@@ -56,23 +57,40 @@ public class BookService(IBookRepository books)
             throw new ArgumentException("Choose a book from Open Library.");
         }
 
+        //check store details and save
+        ValidateStoreDetails(request.Genre, request.Price, request.Stock);
+        return books.Add(request);
+    }
+
+    public Task<BookVM?> GetBook(Guid id)
+    {
+        //get saved book
+        return books.Get(id);
+    }
+
+    public Task<BookVM?> UpdateBook(Guid id, UpdateBookModel request)
+    {
+        //check store details and update
+        ValidateStoreDetails(request.Genre, request.Price, request.Stock);
+        return books.Update(id, request);
+    }
+
+    private static void ValidateStoreDetails(EGenre? genre, decimal? price, int? stock)
+    {
         //check genre and price
-        if (!request.Genre.HasValue || !Enum.IsDefined(request.Genre.Value))
+        if (!genre.HasValue || !Enum.IsDefined(genre.Value))
         {
             throw new ArgumentException("Select a genre.");
         }
-        if (!request.Price.HasValue || request.Price < 0 || request.Price > 99999999.99m ||
-            decimal.Round(request.Price.Value, 2) != request.Price.Value)
+        if (!price.HasValue || price < 0 || price > 99999999.99m || decimal.Round(price.Value, 2) != price.Value)
         {
             throw new ArgumentException("Enter a price between 0 and 99999999.99 with up to two decimal places.");
         }
-        if (request.Stock < 0)
+        if (!stock.HasValue || stock < 0)
         {
-            throw new ArgumentException("Stock cannot be negative.");
+            throw new ArgumentException("Enter a stock quantity of zero or more.");
         }
 
-        //call repo
-        return books.Add(request);
     }
 
     public Task<bool> DeleteBook(Guid id)

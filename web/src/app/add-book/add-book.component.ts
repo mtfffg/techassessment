@@ -35,6 +35,7 @@ export class AddBookComponent implements OnDestroy {
   saving = signal(false);
   genre: EGenre | null = null;
   price: number | null = null;
+  stock: number | null = 0;
   genres = Object.values(EGenre);
   private request?: Subscription;
 
@@ -76,6 +77,7 @@ export class AddBookComponent implements OnDestroy {
     this.selectedBook.set(book);
     this.genre = null;
     this.price = null;
+    this.stock = 0;
     this.error.set('');
   }
 
@@ -88,13 +90,17 @@ export class AddBookComponent implements OnDestroy {
       this.error.set('Select a genre and enter a valid price.');
       return;
     }
+    if (this.stock === null || this.stock < 0 || this.stock > 2147483647 || !Number.isInteger(this.stock)) {
+      this.error.set('Enter a whole stock quantity of zero or more.');
+      return;
+    }
     if (!book.isbn) {
       this.error.set('Choose a catalog result with an ISBN.');
       return;
     }
 
     //build the book to save
-    const request: IAddBook = { ...book, genre: this.genre, price: this.price, stock: 0 };
+    const request: IAddBook = { ...book, genre: this.genre, price: this.price, stock: this.stock };
     this.saving.set(true);
     this.error.set('');
 
@@ -129,6 +135,7 @@ export class AddBookComponent implements OnDestroy {
     this.error.set('');
     this.genre = null;
     this.price = null;
+    this.stock = 0;
     this.visible = false;
     this.visibleChange.emit(false);
   }

@@ -10,5 +10,9 @@ public interface IBookRepository
 
     Task<BookVM?> Add(AddBookModel book);
 
+    Task<BookVM?> Get(Guid id);
+
+    Task<BookVM?> Update(Guid id, UpdateBookModel book);
+
     Task<bool> Delete(Guid id);
 }
